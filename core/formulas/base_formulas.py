@@ -1,12 +1,12 @@
-from utils import *
+
 from sympy import var, Rational
 
 
-def init_symbolic():
-    var('V1:4')
-    var('B1:4')
-    var('L1:4')
-    var('S t T x0 ')
+
+var('V1:4')
+var('B1:4')
+var('L1:4')
+var('S t T x0 ')
 
 
 class SClass(object):

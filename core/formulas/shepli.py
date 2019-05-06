@@ -1,5 +1,5 @@
 from core.formulas.base_formulas import *
-
+from sympy import diff
 
 class Shepli(object):
     def __init__(self, *args, **kwargs):
@@ -18,3 +18,7 @@ class Shepli(object):
         part3 = self.u_list[4] - self.u_list[5]
         part4 = Rational(1, 3) * self.u_list[6]
         return part1 + part2 + part3 + part4
+
+    def get_diff_symbolic(self):
+        return diff(self.get_symbolic(), 't')
+
