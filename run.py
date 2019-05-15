@@ -29,12 +29,7 @@ def save_data(data, s):
         f.write(json.dumps(data))
 
 
-def plot_all():
-    funcs = {'x': X().get_symbolic(),
-             'x_ne': XNE().get_symbolic(),
-             }
-    for i in range(1, 4):
-        funcs['u' + str(i)] = U(i).get_symbolic()
+def plot_funcs(funcs, path):
     parameters = read_data("plot parameters")
     tmin = parameters['t_min']
     step = parameters['t_step']
@@ -42,7 +37,7 @@ def plot_all():
     for t in range(tmin, tmax, step):
         parameters['t'] = t
         for key in funcs.keys():
-            my_plt.plot_sympy_func(funcs[key], parameters, 't', 't', key, f'.\\plots\\'):
+            my_plt.plot_sympy_func(funcs[key], parameters, 't', 't', key, path)
 
 
 def show_dict(dct):
@@ -67,15 +62,24 @@ def compute_bi(params):
     return params
 
 
-def init():
-    params = read_data("input parameters")
-    params = compute_bi(params)
+def classes_to_formulas(classes):
+    formulas = {}
+    for key in classes.keys():
+        formulas[key] = classes[key].get_symbolic()
+    return formulas
+
+
+def init_u(params):
     s = SClass(params['S'])
     u_classes = {'U_alpha': U_alpha(s),
          'U_delta': U_delta(s),
          'U_ksi': U_ksi(s),
          'U_eta': U_eta(s)
          }
+    return classes_to_formulas(u_classes)
+    
+
+def init_shepli():
     shepli_classes = {
          'Sh_alpha_1': Shepli(shepli_args[0], U_alpha),
          'Sh_alpha_2': Shepli(shepli_args[1], U_alpha),
@@ -90,14 +94,41 @@ def init():
          'Sh_eta_2': Shepli(shepli_args[1], U_eta),
          'Sh_eta_3': Shepli(shepli_args[2], U_eta)
     }
-    u_formulas = {}
-    for key in u_classes.keys():
-        u_formulas[key] = u_classes[key].get_symbolic()
-    shepli_formulas = {}
-    for key in shepli_classes.keys():
-        shepli_formulas[key] = shepli_classes[key].get_symbolic()
+    return classes_to_formulas(shepli_classes)
+
+
+def get_derivatives(formulas):
+    ders = {}
+    for key in formulas.keys():
+        ders[key + '_derivative'] = sp.diff(formulas[key], 't')
+    return ders
+
+
+def init_simple_plot_funcs():
+    classes = {
+        "X":X(),
+        "XNE":XNE(),
+        "U1":U(1),
+        "U2":U(2),
+        "U3":U(3)
+    }
+    return classes_to_formulas(classes)
+
+
+def init():
+    params = read_data("input parameters")
+    params = compute_bi(params)
+    formulas = {}
+    u_formulas = init_u(params)
+    shepli_formulas = init_shepli()
+    shepli_ders = get_derivatives(shepli_formulas)
+    formulas['u'] = u_formulas
+    formulas['shelpli'] = shepli_formulas
+    formulas['shepli_ders'] = shepli_ders
+    formulas['simple_plot_funcs'] = init_simple_plot_funcs()
+    
     params['S'] = s.compute_value()
-    return u_formulas, shepli_formulas, params
+    return formulas, params
 
 
 def read_use_command():
@@ -132,7 +163,7 @@ def delete_parameter(params):
     print("Write parameter name:")
     key = input()
     if (key in params):
-        params[key] = value
+        del params[key]
     else:
         print(" can't delete. unknown parameter")
     return params
@@ -166,24 +197,41 @@ def read_main_command():
     print("1. Load input parameters\n")
     print("2. Use current u functions:\n")
     print("3. Use current shepli functions:\n")
-    print("4. Exit\n")
+    print("4. Plot x,xne,un functions\n")
+    print("5. Plot u functions\n")
+    print("6. Plot shepli functions\n")
+    print("7. Plot derivatives of shepli functions\n")
+    print("8. Plot all\n")
+    print("9. Exit\n")
     print("write number of command: ", end='')
     return input()
 
 
 def main_loop():
-    init_symbolic()
-    u_formulas, shepli_formulas, params = init()
+    formulas, params = init()
+    all_formulas = {}
+    for key in formulas.keys():
+        all_formulas.update(formulas[key])
     while True:
         command = read_main_command()
         if (command == '1'):
-            u_formulas, shepli_formulas, params = init()
+            formulas, params = init()
         elif (command == '2'):
-            use_loop(u_formulas, params)
+            use_loop(formulas['u'], params)
         elif (command == '3'):
-            use_loop(shepli_formulas, params)
+            use_loop(formulas['shepli'], params)
         elif (command == '4'):
+            plot_funcs(formulas['simple_plot_funcs'], '.\\plots\\simple')
+        elif (command == '5'):
+            plot_funcs(formulas['u'], '.\\plots\\u_functions\\')
+        elif (command == '6'):
+            plot_funcs(formulas['shepli'], '.\\plots\\shepli\\')
+        elif (command == '7'):
+            plot_funcs(formulas['shepli_der'], '.\\plots\\shepli_der\\')
+        elif (command == '8'):
+            plot_funcs(all_formulas, '.\\plots\\all\\')
+        elif (command == '9'):
             return None
-
+f'.\\plots\\'
 if __name__ == "__main__":
     main_loop()
